@@ -8,6 +8,6 @@ use utils\Router;
 
 require_once 'utils/Router.php';
 
-echo "im bootstrapped<br>";
+
 
 Router::route($_SERVER['REQUEST_URI']);
