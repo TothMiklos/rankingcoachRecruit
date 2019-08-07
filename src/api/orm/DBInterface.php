@@ -13,11 +13,11 @@ interface DBInterface {
 
     function disconnect();
 
-    function insert($tableName, $columns, $values);
+    function create($tableName, $columns, $values);
 
-    function update($tableName, $columns, $values, $conditions);
+    function update($tableName, $columns, $values, $id);
 
-    function select($tableName, $columns, $conditions, $limit, $offset);
+    function get($tableName, $columns, $conditions, $limit, $offset);
 
     function delete($tableName, $conditions);
 

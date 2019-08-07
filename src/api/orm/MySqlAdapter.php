@@ -9,7 +9,9 @@ require_once 'DBInterface.php';
 
 
 use mysqli;
+use function mysqli_close;
 use function mysqli_num_rows;
+use function sizeof;
 
 class MySqlAdapter implements DBInterface {
 
@@ -44,36 +46,102 @@ class MySqlAdapter implements DBInterface {
     }
 
     public function disconnect(){
+        mysqli_close($this->mysqli);
+    }
+
+    public function create($tableName, $columns, $values){
+        $sql = "INSERT INTO " . $tableName . " (";
+        for ($i = 0; $i < sizeof($columns); $i++) {
+            $sql .= $columns[$i];
+            if ($i + 1 < sizeof($columns)){
+                $sql .=", ";
+            }
+        }
+        $sql .= ") VALUES (";
+        for ($i = 0; $i < sizeof($values); $i++) {
+            $sql .= $values[$i];
+            if ($i + 1 < sizeof($values)){
+                $sql .=", ";
+            }
+        }
+        $sql .= ")";
+
+        return $this->mysqli->query($sql);
+    }
+
+    public function update($tableName, $columns, $values, $id){
+        if (sizeof($columns) != sizeof($values)){
+            return false;
+        }
+        $sql = "UPDATE " . $tableName . " SET ";
+        for ($i = 0; $i < sizeof($columns); $i++) {
+            $sql .= $columns[$i] . "=" . $values[$i];
+            if ($i + 1 < sizeof($columns)){
+                $sql .=", ";
+            }
+        }
+        $sql .=" WHERE id=" . $id;
+
+        return $this->mysqli->query($sql);
+    }
+
+    public function get($tableName, $columns = null, $conditions = null, $limit = -1, $offset = -1){
+        $sql = "SELECT ";
+        if ($columns) {
+            for ($i = 0; $i < sizeof($columns); $i++) {
+                $sql .= $columns[$i];
+                if ($i + 1 < sizeof($columns)){
+                    $sql .= ",";
+                }
+            }
+        } else {
+            $sql .= "*";
+        }
+        $sql .= " FROM " . $tableName;
+        if ($conditions) {
+            $sql .= " WHERE ";
+            $i = 0;
+            foreach ($conditions as $key => $value) {
+                $sql .= $key . "=" .$value;
+                if (++$i != sizeof($conditions)) {
+                    $sql .= " AND ";
+                }
+            }
+        }
+        if ($limit >= 0) {
+            $sql .= " LIMIT " . $limit;
+            if ($offset >= 0) {
+                $sql .= ", " . $offset;
+            }
+        }
+
+        echo $sql;
 
     }
 
-    public function insert($tableName, $columns, $values){
+    public function delete($tableName, $id){
+        $sql = "DELETE FROM " .$tableName . " WHERE id=" . $id;
 
-    }
-
-    public function update($tableName, $columns, $values, $conditions){
-
-    }
-
-    public function select($tableName, $columns, $conditions, $limit, $offset){
-
-    }
-
-    public function delete($tableName, $conditions){
-
+        return $this->mysqli->query($sql);
     }
 
     public function fetchFields($tableName){
+        $resultQuery = $this->mysqli->query(" SHOW COLUMNS FROM " . $tableName);
+        $i = 0;
+        $result = array();
+        while ($row = $resultQuery->fetch_row()) {
+            $result[$i++] = $row[0];
+        }
 
+        return $result;
     }
 
     public function checkTables(){
-
-        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . MySqlAdapter::USERS . "''")) == 0)
+        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . MySqlAdapter::USERS . "'")) == 0)
             $this->createUsers();
-        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . MySqlAdapter::SERVICES . "''")) == 0)
+        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . MySqlAdapter::SERVICES . "'")) == 0)
             $this->createServices();
-        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . MySqlAdapter::SUBSCRIPTIONS . "''")) == 0)
+        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . MySqlAdapter::SUBSCRIPTIONS . "'")) == 0)
             $this->createSubscriptions();
 
 
@@ -82,7 +150,7 @@ class MySqlAdapter implements DBInterface {
     private function createUsers(){
         $this->mysqli->query("
             CREATE TABLE " . MySqlAdapter::USERS ." (
-                user_id INT(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                id INT(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(30) NOT NULL,
                 email VARCHAR(30) NOT NULL
             )
@@ -93,7 +161,7 @@ class MySqlAdapter implements DBInterface {
     private function createServices(){
         $this->mysqli->query("
             CREATE TABLE " . MySqlAdapter::SERVICES ." (
-                service_id INT(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                id INT(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 service VARCHAR(30) NOT NULL,
                 min_duration int(8),
                 price int(20)
@@ -105,11 +173,11 @@ class MySqlAdapter implements DBInterface {
     private function createSubscriptions(){
         $this->mysqli->query("
             CREATE TABLE " . MySqlAdapter::SUBSCRIPTIONS ." (
-                subcription_id INT(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                id INT(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
                 user_id INT(8),
                 service_id INT(8),
-                FOREIGN KEY (user_id) REFERENCES " . MySqlAdapter::USERS ." (user_id),
-                FOREIGN KEY (service_id) REFERENCES " . MySqlAdapter::SERVICES ." (service_id)
+                FOREIGN KEY (user_id) REFERENCES " . MySqlAdapter::USERS ." (id),
+                FOREIGN KEY (service_id) REFERENCES " . MySqlAdapter::SERVICES ." (id)
             )
         ");
 
