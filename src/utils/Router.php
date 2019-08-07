@@ -40,7 +40,7 @@ class Router {
                 //TODO handle subscription get
                 break;
             default:
-                echo "404 not found";
+                echo "<br>404 not found";
                 //TODO handle bad uris
                 break;
         }
