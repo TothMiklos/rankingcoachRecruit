@@ -6,18 +6,20 @@
 
 namespace api\orm;
 require_once 'DBInterface.php';
+require_once '../api/User.php';
+require_once '../api/Service.php';
+require_once '../api/Subscription.php';
 
 
+use api\Service;
+use api\Subscription;
+use api\User;
 use mysqli;
 use function mysqli_close;
 use function mysqli_num_rows;
 use function sizeof;
 
 class MySqlAdapter implements DBInterface {
-
-    const USERS = "users";
-    const SERVICES = "services";
-    const SUBSCRIPTIONS = "subscriptions";
 
     private $host;
     private $username;
@@ -27,7 +29,18 @@ class MySqlAdapter implements DBInterface {
     private $socket;
     private $mysqli;
 
-    function __construct($host, $username, $password, $dbName, $port = null, $socket = null){
+    private static $instance = null;
+
+    public static function getInstance($host = "localhost", $username = "rest_api", $password = "CRUD_PASS_19", $dbName = "t_miklos", $port = 3308, $socket = null) {
+        if (self::$instance == null) {
+            self::$instance = new MySqlAdapter($host, $username, $password, $dbName, $port, $socket);
+        }
+
+        return self::$instance;
+    }
+
+
+    private function __construct($host, $username, $password, $dbName, $port = null, $socket = null){
         $this->host = $host;
         $this->username = $username;
         $this->password = $password;
@@ -35,6 +48,8 @@ class MySqlAdapter implements DBInterface {
         $this->port = $port;
         $this->socket = $socket;
 
+        $this->connect();
+        $this->checkTables();
     }
 
 
@@ -82,10 +97,11 @@ class MySqlAdapter implements DBInterface {
         }
         $sql .=" WHERE id=" . $id;
 
+//        echo "<br>".$sql."<br>";
         return $this->mysqli->query($sql);
     }
 
-    public function get($tableName, $columns = null, $conditions = null, $limit = -1, $offset = -1){
+    public function get($tableName, $columns = null, $conditions = null, $limit = null, $offset = null){
         $sql = "SELECT ";
         if ($columns) {
             for ($i = 0; $i < sizeof($columns); $i++) {
@@ -108,22 +124,37 @@ class MySqlAdapter implements DBInterface {
                 }
             }
         }
-        if ($limit >= 0) {
+        if ($limit) {
             $sql .= " LIMIT " . $limit;
-            if ($offset >= 0) {
+            if ($offset) {
                 $sql .= ", " . $offset;
             }
         }
 
-        echo $sql;
+        return $this->mysqli->query($sql);
 
     }
 
     public function delete($tableName, $id){
         $sql = "DELETE FROM " .$tableName . " WHERE id=" . $id;
 
+        return ($this->mysqli->query($sql) != null) && ($this->mysqli->affected_rows > 0);
+    }
+
+    public function createTable($tableName, $columns){
+        $sql = "CREATE TABLE " .$tableName . " ( id int(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY, ";
+        $i = 0;
+        foreach ($columns as $key => $value) {
+            $sql .= $key . " " . $value;
+            if (++$i < sizeof($columns)) {
+                $sql .= ", ";
+            }
+        }
+        $sql .= ")";
+
         return $this->mysqli->query($sql);
     }
+
 
     public function fetchFields($tableName){
         $resultQuery = $this->mysqli->query(" SHOW COLUMNS FROM " . $tableName);
@@ -136,50 +167,17 @@ class MySqlAdapter implements DBInterface {
         return $result;
     }
 
-    public function checkTables(){
-        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . MySqlAdapter::USERS . "'")) == 0)
-            $this->createUsers();
-        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . MySqlAdapter::SERVICES . "'")) == 0)
-            $this->createServices();
-        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . MySqlAdapter::SUBSCRIPTIONS . "'")) == 0)
-            $this->createSubscriptions();
+    private function checkTables(){
+        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . User::TABLE . "'")) == 0)
+            $this->createTable(User::TABLE, User::FIELDS);
+
+        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . Service::TABLE . "'")) == 0)
+            $this->createTable(Service::TABLE, Service::FIELDS);
+
+        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . Subscription::TABLE . "'")) == 0)
+            $this->createTable(Subscription::TABLE, Subscription::FIELDS);
 
 
     }
 
-    private function createUsers(){
-        $this->mysqli->query("
-            CREATE TABLE " . MySqlAdapter::USERS ." (
-                id INT(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                name VARCHAR(30) NOT NULL,
-                email VARCHAR(30) NOT NULL
-            )
-        ");
-
-    }
-
-    private function createServices(){
-        $this->mysqli->query("
-            CREATE TABLE " . MySqlAdapter::SERVICES ." (
-                id INT(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                service VARCHAR(30) NOT NULL,
-                min_duration int(8),
-                price int(20)
-            )
-        ");
-
-    }
-
-    private function createSubscriptions(){
-        $this->mysqli->query("
-            CREATE TABLE " . MySqlAdapter::SUBSCRIPTIONS ." (
-                id INT(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                user_id INT(8),
-                service_id INT(8),
-                FOREIGN KEY (user_id) REFERENCES " . MySqlAdapter::USERS ." (id),
-                FOREIGN KEY (service_id) REFERENCES " . MySqlAdapter::SERVICES ." (id)
-            )
-        ");
-
-    }
 }
