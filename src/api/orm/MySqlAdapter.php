@@ -9,6 +9,8 @@ require_once 'DBInterface.php';
 require_once '../api/User.php';
 require_once '../api/Service.php';
 require_once '../api/Subscription.php';
+require_once '../logger/Subject.php';
+require_once '../logger/Observer.php';
 
 
 use api\Service;
@@ -17,12 +19,14 @@ use api\User;
 use function array_keys;
 use function array_values;
 use function file_get_contents;
+use logger\observer\Observer;
+use logger\observer\Subject;
 use mysqli;
 use function mysqli_close;
 use function mysqli_num_rows;
 use function sizeof;
 
-class MySqlAdapter implements DBInterface {
+class MySqlAdapter implements DBInterface, Subject {
 
     private $host;
     private $username;
@@ -31,6 +35,8 @@ class MySqlAdapter implements DBInterface {
     private $port;
     private $socket;
     private $mysqli;
+    private $sql = "";
+    private $observers = array();
 
     private static $instance = null;
 
@@ -68,95 +74,98 @@ class MySqlAdapter implements DBInterface {
     }
 
     public function create($tableName, $columns, $values){
-        $sql = "INSERT INTO " . $tableName . " (";
+        $this->sql = "INSERT INTO " . $tableName . " (";
         for ($i = 0; $i < sizeof($columns); $i++) {
-            $sql .= $columns[$i];
+            $this->sql .= $columns[$i];
             if ($i + 1 < sizeof($columns)){
-                $sql .=", ";
+                $this->sql .=", ";
             }
         }
-        $sql .= ") VALUES (";
+        $this->sql .= ") VALUES (";
         for ($i = 0; $i < sizeof($values); $i++) {
-            $sql .= $values[$i];
+            $this->sql .= $values[$i];
             if ($i + 1 < sizeof($values)){
-                $sql .=", ";
+                $this->sql .=", ";
             }
         }
-        $sql .= ")";
-        echo $sql;
+        $this->sql .= ")";
+        $this->notity();
 
-        return $this->mysqli->query($sql);
+        return $this->mysqli->query($this->sql);
     }
 
     public function update($tableName, $columns, $values, $id){
         if (sizeof($columns) != sizeof($values)){
             return false;
         }
-        $sql = "UPDATE " . $tableName . " SET ";
+        $this->sql = "UPDATE " . $tableName . " SET ";
         for ($i = 0; $i < sizeof($columns); $i++) {
-            $sql .= $columns[$i] . "=" . $values[$i];
+            $this->sql .= $columns[$i] . "=" . $values[$i];
             if ($i + 1 < sizeof($columns)){
-                $sql .=", ";
+                $this->sql .=", ";
             }
         }
-        $sql .=" WHERE id=" . $id;
+        $this->sql .=" WHERE id=" . $id;
+        $this->notity();
 
-//        echo "<br>".$sql."<br>";
-        return $this->mysqli->query($sql);
+        return $this->mysqli->query($this->sql);
     }
 
     public function get($tableName, $columns = null, $conditions = null, $limit = null, $offset = null){
-        $sql = "SELECT ";
+        $this->sql = "SELECT ";
         if ($columns) {
             for ($i = 0; $i < sizeof($columns); $i++) {
-                $sql .= $columns[$i];
+                $this->sql .= $columns[$i];
                 if ($i + 1 < sizeof($columns)){
-                    $sql .= ",";
+                    $this->sql .= ",";
                 }
             }
         } else {
-            $sql .= "*";
+            $this->sql .= "*";
         }
-        $sql .= " FROM " . $tableName;
+        $this->sql .= " FROM " . $tableName;
         if ($conditions) {
-            $sql .= " WHERE ";
+            $this->sql .= " WHERE ";
             $i = 0;
             foreach ($conditions as $key => $value) {
-                $sql .= $key . "=" .$value;
+                $this->sql .= $key . "=" .$value;
                 if (++$i != sizeof($conditions)) {
-                    $sql .= " AND ";
+                    $this->sql .= " AND ";
                 }
             }
         }
         if ($limit) {
-            $sql .= " LIMIT " . $limit;
+            $this->sql .= " LIMIT " . $limit;
             if ($offset) {
-                $sql .= ", " . $offset;
+                $this->sql .= ", " . $offset;
             }
         }
+        $this->notity();
 
-        return $this->mysqli->query($sql);
+        return $this->mysqli->query($this->sql);
 
     }
 
     public function delete($tableName, $id){
-        $sql = "DELETE FROM " .$tableName . " WHERE id=" . $id;
+        $this->sql = "DELETE FROM " .$tableName . " WHERE id=" . $id;
+        $this->notity();
 
-        return ($this->mysqli->query($sql) != null) && ($this->mysqli->affected_rows > 0);
+        return ($this->mysqli->query($this->sql) != null) && ($this->mysqli->affected_rows > 0);
     }
 
     public function createTable($tableName, $columns){
-        $sql = "CREATE TABLE " .$tableName . " ( id int(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY, ";
+        $this->sql = "CREATE TABLE " .$tableName . " ( id int(8) UNSIGNED AUTO_INCREMENT PRIMARY KEY, ";
         $i = 0;
         foreach ($columns as $key => $value) {
-            $sql .= $key . " " . $value;
+            $this->sql .= $key . " " . $value;
             if (++$i < sizeof($columns)) {
-                $sql .= ", ";
+                $this->sql .= ", ";
             }
         }
-        $sql .= ")";
+        $this->sql .= ")";
+        $this->notity();
 
-        return $this->mysqli->query($sql);
+        return $this->mysqli->query($this->sql);
     }
 
 
@@ -188,6 +197,29 @@ class MySqlAdapter implements DBInterface {
             $this->createTable(Subscription::TABLE, Subscription::FIELDS);
 
 
+    }
+
+    public function attach(Observer $observer){
+        $this->observers[] = $observer;
+    }
+
+    public function detach(Observer $observer){
+        for ($i = 0; $i < sizeof($this->observers); $i++){
+            if ($this->observers[$i] == $observer){
+                unset($this->observers[$i]);
+                return;
+            }
+        }
+    }
+
+    public function notity(){
+        foreach ($this->observers as $observer) {
+            $observer->update($this);
+        }
+    }
+
+    public function message(){
+        return $this->sql;
     }
 
 }
