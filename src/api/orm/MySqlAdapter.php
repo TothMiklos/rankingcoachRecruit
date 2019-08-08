@@ -21,7 +21,6 @@ use mysqli;
 use function mysqli_close;
 use function mysqli_num_rows;
 use function sizeof;
-use function var_dump;
 
 class MySqlAdapter implements DBInterface {
 
@@ -84,6 +83,7 @@ class MySqlAdapter implements DBInterface {
             }
         }
         $sql .= ")";
+        echo $sql;
 
         return $this->mysqli->query($sql);
     }
@@ -179,9 +179,8 @@ class MySqlAdapter implements DBInterface {
             $this->createTable(Service::TABLE, Service::FIELDS);
             $file = file_get_contents(__DIR__ . "\..\..\services.txt");
             $data = json_decode($file, true);
-//            var_dump($data);
             foreach ($data as $row) {
-                Service::create(array_keys($row), array_values($row));
+                Service::create(array_keys($row), array_values($row), Service::FIELDS, Service::TABLE);
             }
         }
 

@@ -2,8 +2,20 @@
 #param2 = DB host
 #param3 = DB username
 #param4 = DB password
-#param5 = DB port
-#param6 = DB socket
+#param5 = DB databasename
+#param6 = DB port
+#param7 = DB socket
+
+if [ $# -eq 7 ]
+    then
+        printf $1, > ./.conf
+        printf $2, >> ./.conf
+        printf $3, >> ./.conf
+        printf $4, >> ./.conf
+        printf $5, >> ./.conf
+        printf $6, >> ./.conf
+        printf $7 >> ./.conf
+fi
 
 if [ $# -eq 6 ]
     then
@@ -49,8 +61,3 @@ if [ $# -eq 1 ]
     then
         printf $1 > ./.conf
 fi
-
-curl -i \
--H "Accept: application/json" \
--H "Content-Type:application/json" \
--X POST --data '{"name": "'\''name1'\''","email": "'\''email!@somewhere'\''","birth_date": "'\''01-01-1981'\''"}' $1/account/create/
