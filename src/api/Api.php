@@ -22,7 +22,6 @@ class Api {
             if (!in_array($column, array_keys($fields))) {
                 return false;
             }
-            echo "asdasdasdasd";
         }
 
         $dataBase = MySqlAdapter::getInstance();

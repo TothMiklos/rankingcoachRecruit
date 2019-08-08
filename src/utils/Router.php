@@ -172,8 +172,7 @@ class Router {
 
 
             default:
-                echo "<br>404 not found";
-                //TODO handle bad uris
+                http_response_code(404);
                 break;
         }
     }

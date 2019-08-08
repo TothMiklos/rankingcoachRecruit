@@ -61,3 +61,6 @@ if [ $# -eq 1 ]
     then
         printf $1 > ./.conf
 fi
+
+
+printf "" > ./public/logs.txt

@@ -11,6 +11,8 @@ use api\orm\MySqlAdapter;
 use function array_keys;
 use function in_array;
 use function is_int;
+use function json_encode;
+use function var_dump;
 
 require_once "Api.php";
 
@@ -37,6 +39,19 @@ class User extends Api {
         return $dataBase->update(self::TABLE, $columns, $values, $id);
     }
 
+    public static function delete($table, $id){
+        if (!is_int($id)) {
+            return false;
+        }
+
+        if (Subscription::get(Subscription::TABLE, array("id"), array("id" => 4))->num_rows === 0){
+            return false;
+        }
+
+        $dataBase = MySqlAdapter::getInstance();
+
+        return $dataBase->delete($table, $id);
+    }
 
 
 }
