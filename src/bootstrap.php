@@ -16,22 +16,19 @@ require_once 'api/User.php';
 require_once 'api/Subscription.php';
 require_once 'api/Service.php';
 
-
-$dataBase = MySqlAdapter::getInstance();
-
-//User::create(array("name", "email", "birth_date"), array("'aaa1'", "'bbb1'", "'01-01-1981'"));
-//User::create(array("name", "email", "birth_date"), array("'aaa2'", "'bbb2'", "'02-02-1982'"));
-//User::update(array("name", "email"), array("'xxxx'", "'yyyy'"), 2);
-
-
-//echo $dataBase->createTable(User::TABLE, User::FIELDS) . "<br>";
-//echo $dataBase->createTable(Subscription::TABLE, Subscription::FIELDS) . "<br>";
-//echo $dataBase->createTable(Service::TABLE, Service::FIELDS) . "<br>";
+$config = file_get_contents(__DIR__ . "/.conf");
+$configs = array();
+$configs = explode(",",$config);
+$host = (isset($configs[1])) ? $configs[1] : null;
+$username = (isset($configs[2])) ? $configs[2] : null;
+$password = (isset($configs[3])) ? $configs[3] : null;
+$dbName = (isset($configs[4])) ? $configs[4] : null;
+$port = (isset($configs[5])) ? $configs[5] : 3308;
+$socket = (isset($configs[6])) ? $configs[6] : null;
 
 
-//echo "<br>" . var_dump(User::FIELDS) . "<br>";
-//echo "<br>" . var_dump(Subscription::FIELDS) . "<br>";
-//echo "<br>" . var_dump(Service::FIELDS) . "<br>";
+$dataBase = MySqlAdapter::getInstance($host, $username, $password, $dbName, $port, $socket);
+
 
 
 Router::route($_SERVER['REQUEST_URI']);

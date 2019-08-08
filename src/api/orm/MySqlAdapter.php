@@ -14,10 +14,14 @@ require_once '../api/Subscription.php';
 use api\Service;
 use api\Subscription;
 use api\User;
+use function array_keys;
+use function array_values;
+use function file_get_contents;
 use mysqli;
 use function mysqli_close;
 use function mysqli_num_rows;
 use function sizeof;
+use function var_dump;
 
 class MySqlAdapter implements DBInterface {
 
@@ -171,8 +175,15 @@ class MySqlAdapter implements DBInterface {
         if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . User::TABLE . "'")) == 0)
             $this->createTable(User::TABLE, User::FIELDS);
 
-        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . Service::TABLE . "'")) == 0)
+        if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . Service::TABLE . "'")) == 0) {
             $this->createTable(Service::TABLE, Service::FIELDS);
+            $file = file_get_contents(__DIR__ . "\..\..\services.txt");
+            $data = json_decode($file, true);
+//            var_dump($data);
+            foreach ($data as $row) {
+                Service::create(array_keys($row), array_values($row));
+            }
+        }
 
         if(mysqli_num_rows($this->mysqli->query("SHOW TABLES LIKE '" . Subscription::TABLE . "'")) == 0)
             $this->createTable(Subscription::TABLE, Subscription::FIELDS);

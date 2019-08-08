@@ -1,0 +1,22 @@
+{
+"0": {
+    "service": "'Internet'",
+    "min_duration": 6,
+    "price": 100
+     },
+"1": {
+    "service": "'Cable TV'",
+    "min_duration": 6,
+    "price": 80
+     },
+"2": {
+    "service": "'Cloud Storage'",
+    "min_duration": 3,
+    "price": 120
+     },
+"3": {
+    "service": "'Phone'",
+    "min_duration": 12,
+    "price": 90
+     }
+}
